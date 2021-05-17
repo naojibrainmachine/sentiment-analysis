@@ -97,7 +97,7 @@ class stentimentAnalysis:
     def update_params(self,grads,params):
         self.opt.apply_gradients(grads_and_vars=zip(grads,params))
 
-def returnAccuracy(temp_predict,temp_batch_label,batch_size):
+def return_accuracy(temp_predict,temp_batch_label,batch_size):
     '''
     计算准确率
     '''
@@ -118,42 +118,41 @@ def train(model,params,vocabulary,labels,chars_to_idx,label_chars_to_idx,batch_s
     '''
     训练函数
     '''
-    for i in range(epochs):
-        acc=[]
-        iter_data=get_data(data=vocabulary,labels=labels,chars_to_idx=chars_to_idx,label_chars_to_idx=label_chars_to_idx,batch_size=batch_size)
-        outputs=[]
-        Ys=[]
-        for x,y in iter_data:
-            state_lstm=model.lstm.init_lstm_state(len(y),num_hiddens)#初始化lstm的C和H          
-            X,Y=data_format(x,y)#格式化数据         
-            X,Y=tf.concat(X,0),tf.concat(Y,0)#把格式化后的组合到一个tensor里       
-            X=tf.one_hot(X,self.vocab_size)  #one_hot编码          
-            Y=tf.one_hot(Y,len(label_idx_to_chars))#one_hot编码
-            Y=tf.reshape(Y,[Y.shape[0],Y.shape[-1]])#转化成2维度
-            with tf.GradientTape() as tape:
-                tape.watch(params)
-                output=model(X,state_lstm)
-                loss=model.loss(output,Y)#获取交叉熵结果
-                print("loss %f"%loss.numpy())
-                grads=tape.gradient(loss, params)#求梯度
-                grads,globalNorm=tf.clip_by_global_norm(grads, clipNorm)#梯度裁剪
-                model.update_params(grads,params)#参数更新
-            Ys.append(Y)#记录所有标签
-            outputs.append(output)#记录所有输出    
-        outputs=tf.concat(outputs,0)
-        Ys=tf.concat(Ys,0)
-        
-        #把准确率存到当前目录
-        filepath="acc.txt"
-        flie=open(filepath,"a+")
-        flie.write(str(tf.math.reduce_mean(returnAccuracy(outputs,Ys,Ys.shape[0])).numpy())+"\n")
-        flie.close()
+    acc=[]
+    iter_data=get_data(data=vocabulary,labels=labels,chars_to_idx=chars_to_idx,label_chars_to_idx=label_chars_to_idx,batch_size=batch_size)
+    outputs=[]
+    Ys=[]
+    for x,y in iter_data:
+        state_lstm=model.lstm.init_lstm_state(len(y),num_hiddens)#初始化lstm的C和H          
+        X,Y=data_format(x,y)#格式化数据         
+        X,Y=tf.concat(X,0),tf.concat(Y,0)#把格式化后的组合到一个tensor里       
+        X=tf.one_hot(X,model.vocab_size)  #one_hot编码          
+        Y=tf.one_hot(Y,len(label_idx_to_chars))#one_hot编码
+        Y=tf.reshape(Y,[Y.shape[0],Y.shape[-1]])#转化成2维度
+        with tf.GradientTape() as tape:
+            tape.watch(params)
+            output=model(X,state_lstm)
+            loss=model.loss(output,Y)#获取交叉熵结果
+            print("loss %f"%loss.numpy())
+            grads=tape.gradient(loss, params)#求梯度
+            grads,globalNorm=tf.clip_by_global_norm(grads, clipNorm)#梯度裁剪
+            model.update_params(grads,params)#参数更新
+        Ys.append(Y)#记录所有标签
+        outputs.append(output)#记录所有输出    
+    outputs=tf.concat(outputs,0)
+    Ys=tf.concat(Ys,0)
+    
+    #把准确率存到当前目录
+    filepath="acc.txt"
+    flie=open(filepath,"a+")
+    flie.write(str(tf.math.reduce_mean(return_accuracy(outputs,Ys,Ys.shape[0])).numpy())+"\n")
+    flie.close()
 
-        '''
-        for k in range(len(params)):
-            filepath="p"+str(k)+".txt"
-            np.savetxt(filepath,(params[k].numpy()).reshape(1,-1))
-        '''
+    '''
+    for k in range(len(params)):
+        filepath="p"+str(k)+".txt"
+        np.savetxt(filepath,(params[k].numpy()).reshape(1,-1))
+    '''
 
 def predict(model,params,test_vovab,test_labels,chars_to_idx,label_chars_to_idx,batch_size):
     '''
@@ -167,7 +166,7 @@ def predict(model,params,test_vovab,test_labels,chars_to_idx,label_chars_to_idx,
         state_lstm=model.lstm.init_lstm_state(len(y),num_hiddens)#初始化lstm的C和H
         X,Y=data_format(x,y)#格式化数据
         X,Y=tf.concat(X,0),tf.concat(Y,0)#把格式化后的组合到一个tensor里
-        X=tf.one_hot(X,self.vocab_size)#one_hot编码
+        X=tf.one_hot(X,model.vocab_size)#one_hot编码
         Y=tf.one_hot(Y,len(label_idx_to_chars))#one_hot编码
         Y=tf.reshape(Y,[Y.shape[0],Y.shape[-1]])#转化成2维度
         output=model(X,state_lstm)#
@@ -175,7 +174,7 @@ def predict(model,params,test_vovab,test_labels,chars_to_idx,label_chars_to_idx,
         outputs.append(output)
     outputs=tf.concat(outputs,0)
     Ys=tf.concat(Ys,0)
-    accT=returnAccuracy(outputs,Ys,Ys.shape[0])
+    accT=return_accuracy(outputs,Ys,Ys.shape[0])
 
     #把准确率存到当前目录
     test_acc.append(accT)
@@ -204,7 +203,8 @@ if __name__ == "__main__":
             params[k].assign((np.loadtxt(filepath,dtype=np.float32)).reshape(params[k].shape))
     '''
     #训练
-    train(sta,params,vocabulary,labels,chars_to_idx,label_chars_to_idx,batch_size)
+    for i in range(epochs):
+        train(sta,params,vocabulary,labels,chars_to_idx,label_chars_to_idx,batch_size)
     #测试
     predict(sta,params,test_vovab,test_labels,chars_to_idx,label_chars_to_idx,batch_size)
         
