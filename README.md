@@ -5,6 +5,9 @@ This python program was a Chinese Sentiment Analysis which consists of lstm、em
 
 直接运行sentiment-analysis.py就能进行训练和预测了。  
 
+关键第三方库  
+tensorflow2.4、foolnltk
+
 参考  
 -
 1.《动手学深度学习》  
