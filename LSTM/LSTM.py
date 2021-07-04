@@ -29,26 +29,25 @@ class lstm:
         (H,C)=state
         output_i=[]
         #这个循环是外层循环，是遍历一个批次所有语句的循环
-        for i in range(data.shape[0]):
-            output_x=[]
+        for i in range(data.shape[1]):
+            #output_x=[]
             #这是遍历语句所有词汇数据的循环
-            for X in data[i,:,:]:
-                if(tf.reduce_sum(X)==0.0):#遇到-1填充的位置，跳出内层循环
-                    break
-                X=tf.reshape(X,[-1,self.W_xi.shape[0]])
-                I=tf.math.sigmoid(tf.matmul(X,self.W_xi)+tf.matmul(H,self.W_hi)+self.b_i)#输入门
-                F=tf.math.sigmoid(tf.matmul(X,self.W_xf)+tf.matmul(H,self.W_hf)+self.b_f)#遗忘门
-                O=tf.math.sigmoid(tf.matmul(X,self.W_xo)+tf.matmul(H,self.W_ho)+self.b_o)#输出门
-
-                C_tilda=tf.math.tanh(tf.matmul(X,self.W_xc)+tf.matmul(H,self.W_hc)+self.b_c)#获得候选记忆细胞
-
-                C=F*C+I*C_tilda#更新记忆细胞
-                H=O*tf.math.tanh(C)#获得隐藏状态
-                Y=tf.matmul(H,self.W_hq)+self.b_q
-                
-                output_x.append(Y)
-            output_i.append(output_x)   
             
+            X=data[:,i,:]    
+            X=tf.reshape(X,[-1,self.W_xi.shape[0]])
+            I=tf.math.sigmoid(tf.matmul(X,self.W_xi)+tf.matmul(H,self.W_hi)+self.b_i)#输入门
+            F=tf.math.sigmoid(tf.matmul(X,self.W_xf)+tf.matmul(H,self.W_hf)+self.b_f)#遗忘门
+            O=tf.math.sigmoid(tf.matmul(X,self.W_xo)+tf.matmul(H,self.W_ho)+self.b_o)#输出门
+
+            C_tilda=tf.math.tanh(tf.matmul(X,self.W_xc)+tf.matmul(H,self.W_hc)+self.b_c)#获得候选记忆细胞
+
+            C=F*C+I*C_tilda#更新记忆细胞
+            H=O*tf.math.tanh(C)#获得隐藏状态
+            Y=tf.matmul(H,self.W_hq)+self.b_q
+            
+            #output_x.append(Y)
+            output_i.append(tf.reshape(Y,[Y.shape[0],1,Y.shape[-1]]))   
+        
         return output_i,(H,C)
         
 
